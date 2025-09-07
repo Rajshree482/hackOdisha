@@ -104,10 +104,12 @@ const touristLocations = [
         id: 'dhauli_shanti_stupa',
         name: 'Dhauli Shanti Stupa',
         coords: { lat: 20.1919, lng: 85.8397 },
-        image: 'images/dhauli-shanti-stupa-1.jpg',
+        image: 'Dhauli (1).jpg',
         images: [
-            'images/dhauli-shanti-stupa-1.jpg',
-            'images/dhauli-shanti-stupa-2.jpg'
+            'Dhauli (1).jpg',
+            'Dhauli (1).avif',
+            'Dhauli (1).webp',
+            'Dhauli (2).jpg'
         ],
         short_desc: 'A white peace pagoda on the site of the historic Kalinga War, symbolizing peace and non-violence.',
         details: {
@@ -181,9 +183,12 @@ const touristLocations = [
         id: 'pipili_applique_work',
         name: 'Pipili Applique Work',
         coords: { lat: 20.1200, lng: 85.8300 },
-        image: 'images/pipili-applique-work-1.jpg',
+        image: 'Pipili (1).jpg',
         images: [
-            'images/pipili-applique-work-1.jpg'
+            'Pipili (1).jpg',
+            'Pipili (2).jpg',
+            'Pipili (3).jpg',
+            'Pipili (4).jpg'
         ],
         short_desc: 'A vibrant town famous for its colorful and intricate applique craft, known as "Chandua".',
         details: {
