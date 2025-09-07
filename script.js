@@ -321,21 +321,266 @@ function initCultureSection() {
     });
 }
 
-    function speakWord(word) {
-    if ('speechSynthesis' in window) {
-        const speech = new SpeechSynthesisUtterance(word);
-        speech.lang = 'hi-IN'; // Closest available to Odia
-        speechSynthesis.speak(speech);
-    } else {
+
+
+
+function speakWord(word, isOdia = true) {
+    if (!('speechSynthesis' in window)) {
         alert('Audio: ' + word);
+        return;
+    }
+
+    // Cancel any ongoing speech
+    speechSynthesis.cancel();
+
+    // Wait for voices to be loaded
+    function speakWithVoice() {
+        const utterance = new SpeechSynthesisUtterance(word);
+        
+        // Get all available voices
+        const voices = speechSynthesis.getVoices();
+        console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+        
+        // Priority order for voice selection - specifically targeting Indian/female voices
+        const voicePreferences = [
+            // Google voices (usually better quality)
+            voices.find(voice => 
+                voice.name.toLowerCase().includes('google') && 
+                voice.lang.includes('en-IN') &&
+                !voice.name.toLowerCase().includes('male')
+            ),
+            // Indian English voices
+            voices.find(voice => 
+                voice.lang.includes('en-IN') && 
+                !voice.name.toLowerCase().includes('male')
+            ),
+            // Any Indian voice
+            voices.find(voice => voice.lang.includes('en-IN')),
+            // Female voices in general English
+            voices.find(voice => 
+                voice.lang.includes('en') && 
+                (voice.name.toLowerCase().includes('female') || 
+                 voice.name.toLowerCase().includes('woman') ||
+                 voice.name.toLowerCase().includes('zira') ||
+                 voice.name.toLowerCase().includes('susan') ||
+                 voice.name.toLowerCase().includes('samantha'))
+            ),
+            // Google English voices (often sound more natural)
+            voices.find(voice => 
+                voice.name.toLowerCase().includes('google') && 
+                voice.lang.includes('en')
+            ),
+            // Fallback to any English voice that's not explicitly male
+            voices.find(voice => 
+                voice.lang.includes('en') && 
+                !voice.name.toLowerCase().includes('male')
+            )
+        ];
+
+        // Select the first available voice from preferences
+        const selectedVoice = voicePreferences.find(voice => voice) || voices[0];
+        
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+            console.log('Selected voice:', selectedVoice.name, selectedVoice.lang);
+        }
+
+        // Optimize settings for Indian English pronunciation
+        utterance.rate = 0.6;        // Very slow for clarity
+        utterance.pitch = 1.4;       // Higher pitch for female voice
+        utterance.volume = 1.0;      // Full volume
+        
+        // Use Indian English if available, otherwise English
+        if (isOdia) {
+            utterance.lang = voices.some(v => v.lang.includes('en-IN')) ? 'en-IN' : 'en-US';
+        } else {
+            utterance.lang = 'en-IN';
+        }
+
+        // Visual feedback
+        const speakBtn = document.getElementById('speak-btn');
+        if (speakBtn) {
+            speakBtn.innerHTML = '🔊 Speaking...';
+            speakBtn.disabled = true;
+            
+            utterance.onstart = function() {
+                console.log('Speech started with voice:', selectedVoice?.name);
+            };
+            
+            utterance.onend = function() {
+                speakBtn.innerHTML = '🔊 Listen';
+                speakBtn.disabled = false;
+                console.log('Speech ended');
+            };
+            
+            utterance.onerror = function(event) {
+                speakBtn.innerHTML = '🔊 Listen';
+                speakBtn.disabled = false;
+                console.error('Speech error:', event.error);
+            };
+        }
+
+        speechSynthesis.speak(utterance);
+    }
+
+    // Ensure voices are loaded before speaking
+    if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.addEventListener('voiceschanged', speakWithVoice, { once: true });
+    } else {
+        speakWithVoice();
     }
 }
+
+// Improved pronunciation for Odia words using phonetic approximations
+const odiaPhonetics = {
+    'Namaskar': 'Nah-mas-kaar',
+    'Dhanyabad': 'Dhan-ya-baad', 
+    'Kemiti achanti': 'Kay-mi-ti ah-chan-ti',
+    'Aamba': 'Aam-baa',
+    'Pani': 'Paa-nee',
+    'Ghara': 'Gha-raa',
+    'Bhai': 'Bhaa-ee',
+    'Bhagini': 'Bha-gi-nee'
+};
+
+// Enhanced function to speak with better pronunciation
+function speakOdiaWord(word) {
+    // Clean the word to get just the Odia part
+    const cleanWord = word.split('(')[0].trim();
+    
+    // Use phonetic version if available
+    const phoneticWord = odiaPhonetics[cleanWord] || word;
+    
+    console.log('Speaking:', cleanWord, '→', phoneticWord);
+    speakWord(phoneticWord, true);
+}
+
+// Function to speak current lesson with improved pronunciation
+function speakCurrentLesson() {
+    const phrases = [
+        'Nah-mas-kaar',           // Namaskar - Hello/Goodbye
+        'Dhan-ya-baad',           // Dhanyabad - Thank you  
+        'Kay-mi-ti ah-chan-ti'    // Kemiti achanti - How are you?
+    ];
+    
+    let index = 0;
+    
+    function speakNext() {
+        if (index < phrases.length) {
+            speakWord(phrases[index], true);
+            
+            setTimeout(() => {
+                index++;
+                if (index < phrases.length) {
+                    speakNext();
+                }
+            }, 3000); // 3 second delay for slower pace
+        }
+    }
+    
+    speakNext();
+}
+
+// Enhanced flashcard speech with phonetic pronunciation
+function speakFlashcard() {
+    const flashcardText = document.getElementById('flashcard-text');
+    if (flashcardText) {
+        const text = flashcardText.textContent;
+        
+        // Check if it's Odia (contains Odia script) or English
+        if (text.includes('à¬') || text.includes('(à¬')) {
+            // It's Odia - use phonetic pronunciation
+            speakOdiaWord(text);
+        } else {
+            // It's English - speak normally with Indian English
+            speakWord(text, false);
+        }
+    }
+}
+
+// Voice testing function to help user find the best voice
+function testVoices() {
+    const voices = speechSynthesis.getVoices();
+    console.log('\n=== Testing Available Voices ===');
+    
+    // Test Indian English voices specifically
+    const indianVoices = voices.filter(v => v.lang.includes('en-IN'));
+    const femaleVoices = voices.filter(v => 
+        (v.lang.includes('en')) && 
+        (v.name.toLowerCase().includes('female') || 
+         v.name.toLowerCase().includes('woman') ||
+         !v.name.toLowerCase().includes('male'))
+    );
+    
+    console.log('Indian English voices:', indianVoices.map(v => v.name));
+    console.log('Female-like voices:', femaleVoices.map(v => v.name));
+    
+    // Test the selected voice
+    speakWord('Hello, Welcome to Virtual Odisha ', false);
+}
+
+// Initialize voice system with better loading
+function initializeVoiceSystem() {
+    console.log('Initializing voice system...');
+    
+    function onVoicesChanged() {
+        const voices = speechSynthesis.getVoices();
+        console.log(`Loaded ${voices.length} voices`);
+        
+        // Log available Indian/female voices for debugging
+        const indianVoices = voices.filter(v => v.lang.includes('en-IN'));
+        const femaleVoices = voices.filter(v => 
+            v.name.toLowerCase().includes('female') || 
+            v.name.toLowerCase().includes('woman') ||
+            (!v.name.toLowerCase().includes('male') && v.lang.includes('en'))
+        );
+        
+        if (indianVoices.length > 0) {
+            console.log('Indian English voices found:', indianVoices.map(v => v.name));
+        }
+        if (femaleVoices.length > 0) {
+            console.log('Female-like voices found:', femaleVoices.map(v => v.name));
+        }
+        
+        // Test voice availability
+        if (voices.length === 0) {
+            console.warn('No voices available');
+        }
+    }
+
+    // Handle voice loading
+    if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+    } else {
+        onVoicesChanged();
+    }
+    
+    // Add a test button for voice debugging (optional)
+    const learnSection = document.getElementById('learn');
+    if (learnSection && !document.getElementById('voice-test-btn')) {
+        const testButton = document.createElement('button');
+        testButton.id = 'voice-test-btn';
+        testButton.className = 'btn';
+        testButton.innerHTML = '🎤 Test Voice';
+        testButton.style.cssText = 'margin-left: 10px; font-size: 0.9rem; padding: 8px 16px;';
+        testButton.onclick = testVoices;
+        
+        const speakBtn = document.getElementById('speak-btn');
+        if (speakBtn && speakBtn.parentNode) {
+            speakBtn.parentNode.insertBefore(testButton, speakBtn.nextSibling);
+        }
+    }
+}
+
 
 function flipCard() {
     const cardText = document.getElementById('flashcard-text');
     const currentCard = vocabulary[currentCardIndex];
     isCardFlipped = !isCardFlipped;
     cardText.textContent = isCardFlipped ? currentCard.english : currentCard.odia;
+    
+    // Add this line for audio:
+    setTimeout(() => speakFlashcard(), 300);
 }
 
 function nextCard() {
@@ -343,6 +588,9 @@ function nextCard() {
     const cardText = document.getElementById('flashcard-text');
     cardText.textContent = vocabulary[currentCardIndex].odia;
     isCardFlipped = false;
+    
+    // Add this line for audio:
+    setTimeout(() => speakFlashcard(), 300);
 }
 
 // --- Quick Quiz Functions ---
@@ -759,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('tour-modal-close').addEventListener('click', closeTourModal);
 
     // Learn Odia Section
-    document.getElementById('speak-btn').addEventListener('click', () => speakWord('namaskar'));
+    document.getElementById('speak-btn').addEventListener('click', speakCurrentLesson);
     document.getElementById('flip-card-btn').addEventListener('click', flipCard);
     document.getElementById('next-card-btn').addEventListener('click', nextCard);
 
@@ -800,3 +1048,23 @@ window.addEventListener('load', function () {
         }, 1500);
     }, 800);
 });
+
+function initializeVoices() {
+    if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.addEventListener('voiceschanged', function() {
+            console.log('Voices loaded:', speechSynthesis.getVoices().length);
+        });
+    }
+}
+
+// Call initialization
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeVoiceSystem);
+} else {
+    initializeVoiceSystem();
+}
+
+// Export functions for use in your existing code
+window.speakCurrentLesson = speakCurrentLesson;
+window.speakFlashcard = speakFlashcard;
+window.speakOdiaWord = speakOdiaWord;
