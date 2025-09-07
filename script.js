@@ -322,7 +322,7 @@ function initCultureSection() {
 }
 
 
-
+//--------------------------------------Speaking-----------------------------------------------------------------------
 
 function speakWord(word, isOdia = true) {
     if (!('speechSynthesis' in window)) {
@@ -592,6 +592,8 @@ function nextCard() {
     // Add this line for audio:
     setTimeout(() => speakFlashcard(), 300);
 }
+
+//-------------------------------------------------------------------------------end-----------------------------------------------------------
 
 // --- Quick Quiz Functions ---
 function shuffleArray(array) {
@@ -1048,7 +1050,7 @@ window.addEventListener('load', function () {
         }, 1500);
     }, 800);
 });
-
+//----------------------------------------------------------------------------------------------------
 function initializeVoices() {
     if (speechSynthesis.getVoices().length === 0) {
         speechSynthesis.addEventListener('voiceschanged', function() {
